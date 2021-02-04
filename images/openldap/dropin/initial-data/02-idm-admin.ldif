@@ -1,0 +1,11 @@
+#Contains default password 'admin'
+dn: uid=admin,ou=users,{{ LDAP_BASE_DN }}
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+uid: admin
+givenName: CzechIdM
+sn: Admin
+cn: CzechIdM Admin
+userPassword: {SSHA}2PQpaNWSB+dJESmS1JgfQFpmYdS4yiXZ
