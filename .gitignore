@@ -1,0 +1,4 @@
+compose/secrets/certs/dhparam.pem
+compose/backup/
+compose/data
+compose/config
