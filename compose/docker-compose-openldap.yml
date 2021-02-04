@@ -1,12 +1,12 @@
 version: '3.2'
 services:
-  directory-server:
+  openldap:
     image: bcv-openldap:1.4.0-r0
-    container_name: directory-server
+    container_name: openldap
     ports:
       - 389:389
       - 636:636
-    hostname: directory-server
+    hostname: openldap
     environment:
       LDAP_TLS: "true"
       LDAP_TLS_CRT_FILENAME: "ldap.crt"
