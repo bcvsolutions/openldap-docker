@@ -4,8 +4,10 @@ objectClass: top
 objectClass: person
 objectClass: organizationalPerson
 objectClass: inetOrgPerson
+objectClass: iamManagedUser
 uid: admin
 givenName: CzechIdM
 sn: Admin
 cn: CzechIdM Admin
+iamUserStatus: active
 userPassword: {SSHA}2PQpaNWSB+dJESmS1JgfQFpmYdS4yiXZ
