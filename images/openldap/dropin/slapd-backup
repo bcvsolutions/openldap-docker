@@ -22,8 +22,8 @@ if [ "$LDAP_ENCRYPT_BACKUP" == "true" ] && [ -f "$LDAP_ENCRYPT_SYMKEY_FILE" ]; t
       -pass file:"$LDAP_ENCRYPT_SYMKEY_FILE" \
       -out "${backupFilePath}"
   # to decrypt, use something like:
-  # openssl enc -d -aes-256-cbc -pbkdf2 -in /data/backup/data-config.gz.e -out mydatabase.sql.gz -pass file:/container/environment/90-adminpw/enc_backup_symkey.key
-  # then, recover the database using the mydatabase.sql.gz as usual (in /sbin/slapd-restore script)
+  # openssl enc -d -aes-256-cbc -pbkdf2 -in /data/backup/data-config.gz.e -out my-config.gz -pass file:/container/environment/90-adminpw/enc_backup_symkey.key
+  # then, recover the database using the my-config.gz as usual (in /sbin/slapd-restore script)
 else
   backupFilePath="$backupPath/$(date "$dateFileFormat")-$filename.gz"
   /usr/sbin/slapcat -F /etc/ldap/slapd.d -n $dbnum | gzip > $backupFilePath
