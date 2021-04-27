@@ -39,9 +39,11 @@ No engine sizing is performed.
 
 ## Environment variables
 See baseimage doc.
+- DB_ENCRYPT_SYMKEY_FILE - Location of symmetric key for backup encryption.
+- DB_ENCRYPT_BACKUP - Flag that turns on/off the backup encryption. Format true/false.
 
 ## Backups
-Container can make a persistent backup of the database, using `slapcat`, producing gzipped LDIF.
+Container can make a persistent backup of the database, using `slapcat`, producing gzipped LDIF. If encryption is set then gzipped LDIF will be encrypted.
 To make a backup of the database, simly run
 * `docker exec -it openldap /sbin/slapd-backup-config` to backup config
 * `docker exec -it openldap /sbin/slapd-backup-data` to backup data
@@ -58,13 +60,22 @@ To fully restore the state of LDAP server, restore both backups.
   ```
   [fiisch@dockerhost ~]$ docker exec -it openldap bash
   ```
-1. Delete current configuration
+2. Double check the backup was created/exists
+  ```
+  [fiisch@dockerhost ~]$ ls /data/backup/
+  ```
+3. Delete current configuration
   ```
   root@openldap:/# rm -r /etc/ldap/slapd.d/cn*
   ```
-1. Use supplied script to restore from backup (script expects the file to be in `/data/backup`)
+4. Use supplied script to restore from backup (script expects the file to be in `/data/backup`)
+  - For not encrypted:
   ```
   /sbin/slapd-restore-config 20210204T090611-config.gz
+  ```
+  - For encrypted backed use gz.e file extension.
+  ```
+  /sbin/slapd-restore-config 20210204T090611-config.gz.e
   ```
 
 ### Restore data
@@ -72,13 +83,22 @@ To fully restore the state of LDAP server, restore both backups.
   ```
   [fiisch@dockerhost ~]$ docker exec -it openldap bash
   ```
-1. Delete contents of the data directory
+2. Double check the backup was created/exists
+  ```
+  [fiisch@dockerhost ~]$ ls /data/backup/
+  ```
+3. Delete contents of the data directory
   ```
   root@openldap:/# rm /var/lib/ldap/*
   ```
-1. Use supplied script to restore from backup (script expects the file to be in `/data/backup`)
+4. Use supplied script to restore from backup (script expects the file to be in `/data/backup`)
+  - For not encrypted:
   ```
   /sbin/slapd-restore-data 20210204T090615-data.gz
+  ```
+  - For encrypted backed use gz.e file extension:
+  ```
+  /sbin/slapd-restore-config 20210204T090611-config.gz.e
   ```
 
 ## Mounted files and volumes
