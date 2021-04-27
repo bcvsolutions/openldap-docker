@@ -20,8 +20,8 @@ if [ "$LDAP_ENCRYPT_BACKUP" == "true" ] && [ -f "$LDAP_ENCRYPT_SYMKEY_FILE" ]; t
   	rm $TEMP_FILE_RESTORE
 
   # to decrypt, use something like:
-  # openssl enc -d -aes-256-cbc -pbkdf2 -in mydatabase-2021-02-22_15-00-45.sql.gz.e -out mydatabase.sql.gz -pass file:/run/secrets/enc_backup_symkey.key
-  # then, recover the database using the mydatabase.sql.gz as usual
+  # openssl enc -d -aes-256-cbc -pbkdf2 -in /data/backup/data-config.gz.e -out my-config.gz -pass file:/container/environment/90-adminpw/enc_backup_symkey.key
+  # then, recover the database using the mydatabase.sql.gz as usual (in else condition below)
 else
   gunzip -c $file > $TEMP_FILE  
 fi
