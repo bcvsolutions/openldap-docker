@@ -45,7 +45,7 @@ services:
         read_only: true
         #encryption key for backup
 #      - type: bind
-#        source: /data/volumes/directory-server/secrets/enc
+#        source: /data/volumes/directory-server/secrets-enc
 #        target: /run/secrets/enc
 #        read_only: true
       
