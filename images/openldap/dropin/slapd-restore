@@ -12,18 +12,22 @@ sv stop /container/run/process/slapd
 
 TEMP_FILE=$(mktemp)
 
-if [ "$LDAP_ENCRYPT_BACKUP" == "true" ] && [ -f "$LDAP_ENCRYPT_SYMKEY_FILE" ]; then
-    TEMP_FILE_RESTORE=$(mktemp) 
-    openssl enc -d -aes-256-cbc -pbkdf2 -pass file:"$LDAP_ENCRYPT_SYMKEY_FILE" -in $file -out $TEMP_FILE_RESTORE
-  	gunzip -c $TEMP_FILE_RESTORE > $TEMP_FILE
+#if file is with file extension .gz.e then we assume it is encrypted
+if [[ $file == *.gz.e ]]; then
+	if [ -f "$LDAP_ENCRYPT_SYMKEY_FILE" ]; then
+    	TEMP_FILE_RESTORE=$(mktemp) 
+    	#decrypt
+    	openssl enc -d -aes-256-cbc -pbkdf2 -pass file:"$LDAP_ENCRYPT_SYMKEY_FILE" -in $file -out $TEMP_FILE_RESTORE
+    	#unzip
+  		gunzip -c $TEMP_FILE_RESTORE > $TEMP_FILE
 
-  	rm $TEMP_FILE_RESTORE
-
-  # to decrypt, use something like:
-  # openssl enc -d -aes-256-cbc -pbkdf2 -in /data/backup/data-config.gz.e -out my-config.gz -pass file:/container/environment/90-adminpw/enc_backup_symkey.key
-  # then, recover the database using the my-config.gz as usual (in else condition below)
+  		rm $TEMP_FILE_RESTORE
+  	else
+  		printf '%s\n' "Missing LDAP_ENCRYPT_SYMKEY_FILE - nothing is restored" >&2  # write error message to stderr
+  		exit 1   
+  	fi
 else
-  gunzip -c $file > $TEMP_FILE  
+	gunzip -c $file > $TEMP_FILE  
 fi
 
 chown openldap:openldap $TEMP_FILE

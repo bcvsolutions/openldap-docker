@@ -39,8 +39,8 @@ No engine sizing is performed.
 
 ## Environment variables
 See baseimage doc.
-- DB_ENCRYPT_SYMKEY_FILE - Location of symmetric key for backup encryption.
-- DB_ENCRYPT_BACKUP - Flag that turns on/off the backup encryption. Format true/false.
+- LDAP_ENCRYPT_SYMKEY_FILE - Location of symmetric key for backup encryption.
+- LDAP_ENCRYPT_BACKUP - Flag that turns on/off the backup encryption. Format true/false.
 
 ## Backups
 Container can make a persistent backup of the database, using `slapcat`, producing gzipped LDIF. If encryption is set then gzipped LDIF will be encrypted.
@@ -49,6 +49,13 @@ To make a backup of the database, simly run
 * `docker exec -it openldap /sbin/slapd-backup-data` to backup data
 
 from outside the container.
+
+### How to generate encryption key for backups
+If you create a key, add it to secrets/enc folder and mount it in docker-compose file. See the section below.
+
+```openssl rand -base64 32 > enc_backup_symkey.key```
+
+
 
 ## Restore
 There are always two backups made, a backup of LDAP configuration and a backup of LDAP data.
@@ -98,7 +105,7 @@ To fully restore the state of LDAP server, restore both backups.
   ```
   - For encrypted backed use gz.e file extension:
   ```
-  /sbin/slapd-restore-config 20210204T090611-config.gz.e
+  /sbin/slapd-restore-data 20210204T090611-config.gz.e
   ```
 
 ## Mounted files and volumes
@@ -158,4 +165,15 @@ To fully restore the state of LDAP server, restore both backups.
           source: ./secrets/certs
           target: /container/service/slapd/assets/certs/
           read_only: false
+      ```
+  - Directory which will hold encryption keys.
+    - Encryption key for openldap database backup and restore
+    - Directory must be mounted in read-write mode because container will generate backup files.
+    - Example
+      ```yaml
+      volumes:
+        - type: bind
+          source: ./secrets/enc
+          target: /run/secrets/enc
+          read_only: true
       ```
