@@ -17,35 +17,33 @@ services:
       LDAP_BASE_DN: "dc=test"
       LDAP_TLS_CIPHER_SUITE: "NORMAL"
       LDAP_TLS_VERIFY_CLIENT: "never"
-#      LDAP_ENCRYPT_BACKUP: "true"
-#      LDAP_ENCRYPT_SYMKEY_FILE: "/run/secrets/enc/enc_backup_symkey.key"
+      LDAP_ENCRYPT_BACKUP: "true"
+      LDAP_ENCRYPT_SYMKEY_FILE: "/run/secrets/enc/enc_backup_symkey.key"
 #      LDAP_RFC2307BIS_SCHEMA: "true"
 #      LDAP_READONLY_USER: "true"
 #      LDAP_READONLY_USER_USERNAME: "readonly"
     volumes:
       - type: bind
-        source: /data/volumes/directory-server/data
+        source: ./data
         target: /var/lib/ldap
         read_only: false
       - type: bind
-        source: /data/volumes/directory-server/config
+        source: ./config
         target: /etc/ldap/slapd.d
         read_only: false
       - type: bind
-        source: /data/volumes/directory-server/secrets-certs
+        source: ./secrets/certs
         target: /container/service/slapd/assets/certs/
         read_only: false
       - type: bind
-        source: /data/volumes/directory-server/backup/
+        source: ./backup
         target: /data/backup
         read_only: false
       - type: bind
-        source: /data/volumes/directory-server/secrets-pwfiles
+        source: ./secrets/pwfiles
         target: /container/environment/90-adminpw
         read_only: true
-        #encryption key for backup
-#      - type: bind
-#        source: /data/volumes/directory-server/secrets-enc
-#        target: /run/secrets/enc
-#        read_only: true
-      
+      - type: bind
+        source: ./secrets/enc
+        target: /run/secrets/enc
+        read_only: true
