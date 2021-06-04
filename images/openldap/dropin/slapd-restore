@@ -17,8 +17,16 @@ if [[ $file == *.gz.e ]]; then
 	if [ -f "$LDAP_ENCRYPT_SYMKEY_FILE" ]; then
     	TEMP_FILE_RESTORE=$(mktemp) 
     	#decrypt
-    	openssl enc -d -aes-256-cbc -pbkdf2 -pass file:"$LDAP_ENCRYPT_SYMKEY_FILE" -in $file -out $TEMP_FILE_RESTORE
-    	#unzip
+    	openssl enc -d -aes-256-cbc -pbkdf2 -pass file:"$LDAP_ENCRYPT_SYMKEY_FILE" -in $file -out $TEMP_FILE_RESTORE 2>/tmp/err
+      if [ -s /tmp/err ]; then
+        printf '%s\n' "Decrypting failed: " >&2;
+        cat /tmp/err >&2;
+        exit 1
+      else
+        echo "decrypting processed"
+      fi
+
+      #unzip
   		gunzip -c $TEMP_FILE_RESTORE > $TEMP_FILE
 
   		rm $TEMP_FILE_RESTORE
