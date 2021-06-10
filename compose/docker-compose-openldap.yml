@@ -17,6 +17,8 @@ services:
       LDAP_BASE_DN: "dc=test"
       LDAP_TLS_CIPHER_SUITE: "NORMAL"
       LDAP_TLS_VERIFY_CLIENT: "never"
+      LDAP_ENCRYPT_BACKUP: "false"
+      LDAP_ENCRYPT_SYMKEY_FILE: "/run/secrets/enc/enc_backup_symkey.key"
 #      LDAP_RFC2307BIS_SCHEMA: "true"
 #      LDAP_READONLY_USER: "true"
 #      LDAP_READONLY_USER_USERNAME: "readonly"
@@ -40,4 +42,8 @@ services:
       - type: bind
         source: ./secrets/pwfiles
         target: /container/environment/90-adminpw
+        read_only: true
+      - type: bind
+        source: ./secrets/enc
+        target: /run/secrets/enc
         read_only: true

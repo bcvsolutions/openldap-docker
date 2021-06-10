@@ -1,0 +1,53 @@
+#!/bin/bash
+
+# Usage: /sbin/slapd-restore dbnum file
+dbnum=$1
+file=$2
+
+backupPath="/data/backup"
+file="$backupPath/$file"
+
+# stop slapd
+sv stop /container/run/process/slapd
+
+TEMP_FILE=$(mktemp)
+
+#if file is with file extension .gz.e then we assume it is encrypted
+if [[ $file == *.gz.e ]]; then
+	if [ -f "$LDAP_ENCRYPT_SYMKEY_FILE" ]; then
+    	TEMP_FILE_RESTORE=$(mktemp) 
+      TEMP_FILE_ERROR=$(mktemp)
+    	#decrypt
+    	openssl enc -d -aes-256-cbc -pbkdf2 -pass file:"$LDAP_ENCRYPT_SYMKEY_FILE" -in $file -out $TEMP_FILE_RESTORE 2>$TEMP_FILE_ERROR
+      if [ -s $TEMP_FILE_ERROR ]; then
+        printf '%s\n' "Decrypting failed: " >&2;
+        cat $TEMP_FILE_ERROR >&2;
+        rm $TEMP_FILE_ERROR
+        exit 1
+      else
+        echo "decrypting processed"
+      fi
+
+      #unzip
+  		gunzip -c $TEMP_FILE_RESTORE > $TEMP_FILE
+
+      rm $TEMP_FILE_ERROR
+  		rm $TEMP_FILE_RESTORE
+  	else
+  		printf '%s\n' "Missing LDAP_ENCRYPT_SYMKEY_FILE - nothing is restored" >&2  # write error message to stderr
+  		exit 1   
+  	fi
+else
+	gunzip -c $file > $TEMP_FILE  
+fi
+
+chown openldap:openldap $TEMP_FILE
+
+/sbin/setuser openldap slapadd -c -F /etc/ldap/slapd.d -n $dbnum -l $TEMP_FILE
+
+# restart slapd
+sv start /container/run/process/slapd
+
+rm $TEMP_FILE
+
+exit 0
