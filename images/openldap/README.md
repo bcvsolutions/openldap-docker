@@ -53,7 +53,9 @@ from outside the container.
 ### How to generate encryption key for backups
 If you create a key, add it to secrets/enc folder and mount it in docker-compose file. See the section below.
 
-```openssl rand -base64 32 > enc_backup_symkey.key```
+```
+openssl rand -base64 32 > enc_backup_symkey.key
+```
 
 
 

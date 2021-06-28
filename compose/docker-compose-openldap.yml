@@ -1,7 +1,7 @@
 version: '3.2'
 services:
   openldap:
-    image: bcv-openldap:1.4.0-r1
+    image: bcv-openldap:1.4.0-r2
     container_name: openldap
     ports:
       - 389:389
