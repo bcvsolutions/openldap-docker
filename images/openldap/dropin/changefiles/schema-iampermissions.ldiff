@@ -1,16 +1,8 @@
 dn: cn={14}iamManagedUser,cn=schema,cn=config
 changetype: modify
-replace: olcAttributeTypes
-olcAttributeTypes: {0}( 
-    1.3.6.1.4.1.33537.1.2.2.1 
-    NAME 'iamUserStatus' 
-    EQUALITY caseIgnoreMatch 
-    DESC '"active", "inactive", or "deleted" status of a user' 
-    SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 
-    SINGLE-VALUE 
-    X-ORIGIN 'IAM appliance equivalent of inetUserStatus' )
+add: olcAttributeTypes
 olcAttributeTypes: {0}(
-    1.3.6.1.4.1.33537.1.2.2.2 
+    1.3.6.1.4.1.33537.1.2.2.3 
     NAME 'iamPermissions' 
     EQUALITY caseIgnoreMatch 
     DESC 'Multivalued list of users roles' 

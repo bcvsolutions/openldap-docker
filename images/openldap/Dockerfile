@@ -12,3 +12,15 @@ RUN chmod 755 /container/service/slapd-backup/assets/tool/slapd-restore
 
 RUN mkdir -pv /container/service/slapd/assets/config/bootstrap/ldif/custom/
 COPY ./dropin/initial-data/* /container/service/slapd/assets/config/bootstrap/ldif/custom/
+
+RUN mkdir -pv /bcv/changefiles
+COPY ./dropin/changefiles/* /bcv/changefiles
+RUN chmod 755 /bcv/changefiles
+
+RUN mkdir -pv /bcv/run-scripts
+COPY ./dropin/run-scripts/* /bcv/run-scripts
+RUN chmod 755 /bcv/run-scripts/*
+
+# override entrypoint from https://github.com/osixia/docker-light-baseimage in order to
+# enable post-start script run
+ENTRYPOINT ["/bcv/run-scripts/entrypoint.sh"]
