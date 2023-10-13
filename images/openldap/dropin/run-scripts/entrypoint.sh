@@ -1,33 +1,55 @@
 #!/bin/sh
 
-# Start the original entrypoint script /container/tool/run in the foreground
-/container/tool/run &
+# Password to ldap users may be stored in files inside /container/environment/90-adminpw folder.
+# In that case we must fetch those and set corresponding env variables.
+# See perform_operation for the motivation for this function
+load_passwords() {
+    for file in /container/environment/90-adminpw/*; do
+        if [ -f "$file" ]; then
+            # Read the variables from the file and set them as environment variables
+            while IFS=: read -r VAR value; do
+                VAR=$(echo "$VAR" | sed 's/^[" ]*//;s/[" ]*$//')  # Remove leading and trailing quotes and spaces
+                value=$(echo "$value" | sed 's/^[" ]*//;s/[" ]*$//')  # Remove leading and trailing quotes and spaces
+                export "$VAR"="$value"
+            done < "$file"
+        fi
+    done
+}
+
 
 # Wait for the OpenLDAP service to start
+# Underlying LDAP server starts and shuts down multiple times during container
+# startup. We need to wait for it to start in order to be able to modify its
+# schema and push additional data.
+# This function solves this issue by trying to contact LDAP server using ldapsearch
+# and measuring consecutive successful searches. If it detects 5 consecutive successful
+#searches, then LDAP is considered to be started.
 wait_for_ldap() {
-    ldap_ready=false
-    max_retries=30  # Adjust the number of retries as needed
+    max_retries=30 # Adjust the number of retries as needed
     retries=0
+    consecutive_success=0
+    consecutive_threshold=5 # Adjust this threshold as needed
 
     while [ $retries -lt $max_retries ]; do
+        echo "BCV INIT search $retries"
         ldapsearch -x -LLL -b "" -s base "(objectClass=*)" 2>/dev/null
         if [ $? -eq 0 ]; then
-            ldap_ready=true
-            break
+            consecutive_success=$((consecutive_success + 1))
+            if [ $consecutive_success -ge $consecutive_threshold ]; then
+                echo "BCV INIT LDAP server is ready."
+                return 0
+            fi
+        else
+            consecutive_success=0
         fi
 
         retries=$((retries + 1))
         sleep 2
     done
 
-    if [ "$ldap_ready" = false ]; then
-        echo "BCV INIT LDAP server did not start within the specified time."
-        exit 1
-    fi
+    echo "BCV INIT LDAP server did not start within the specified time."
+    exit 1
 }
-
-# Check if LDAP is ready before proceeding
-wait_for_ldap
 
 # Function to check if the versions object exists
 check_versions_object() {
@@ -46,7 +68,7 @@ check_and_create_versions_object() {
 
     if ! check_versions_object "$versions_dn"; then
         echo "BCV INIT Versions object $versions_dn does not exist. Creating it."
-        ldapadd -Y EXTERNAL -H ldapi:/// << EOF
+        ldapadd -Y EXTERNAL -H ldapi:/// <<EOF
 dn: cn=iamVersionStorrage,cn=schema,cn=config
 objectClass: olcSchemaConfig
 cn: iamVersionStorrage
@@ -73,8 +95,6 @@ EOF
     fi
 }
 
-
-
 # Function to determine the operation type based on ldiff contents
 determine_operation_type() {
     file="$1"
@@ -87,19 +107,40 @@ determine_operation_type() {
 }
 
 # Function to perform ldapadd or ldapmodify based on operation type
+# Default admin user cannot modify LDAP scheme inside cn=config. Because of this
+# we need to use cn=admin,cn=config user if the ldif file modifies cn=config.
+# Note that LDAP_CONFIG_PASSWORD env variable needs to be set in order to be able
+# to successfuly bind with cn=admin,cn=config.
 perform_operation() {
     operation="$1"
     file="$2"
 
-    case "$operation" in
-        "add")
-            ldapadd -Y EXTERNAL -H ldapi:/// -f "$file"
-            ;;
-        "modify")
-            ldapmodify -Y EXTERNAL -H ldapi:/// -f "$file"
-            ;;
-    esac
+    # Extract the DN from the LDIF file
+    dn=$(grep -oP '^dn:.*' "$file" | head -n 1)
+
+    # Check if the DN ends with "cn=config"
+    if [ "$(echo "$dn" | grep -oP '.*cn=config$')" ]; then
+        # Use cn=admin,cn=config for cn=config DN
+        if [ "$operation" = "add" ]; then
+            ldapadd -D "cn=admin,cn=config" -w "$LDAP_CONFIG_PASSWORD" -H ldapi:/// -f "$file" 2>&1
+        elif [ "$operation" = "modify" ]; then
+            ldapmodify -D "cn=admin,cn=config" -w "$LDAP_CONFIG_PASSWORD" -H ldapi:/// -f "$file" 2>&1
+        else
+            echo "Unsupported operation: $operation"
+        fi
+    else
+        # Use external authentication for other DNs
+        if [ "$operation" = "add" ]; then
+            ldapadd -Y EXTERNAL -Q -H ldapi:/// -f "$file" 2>&1
+        elif [ "$operation" = "modify" ]; then
+            ldapmodify -Y EXTERNAL -Q -H ldapi:/// -f "$file" 2>&1
+        else
+            echo "Unsupported operation: $operation"
+        fi
+    fi
 }
+
+
 
 # Function to run all ldiff files in /bcv/changefiles/
 run_ldiff_files() {
@@ -133,7 +174,7 @@ run_ldiff_files() {
                     # Perform the appropriate ldap operation
                     perform_operation "$operation" "$file"
 
-                    ldapmodify -Y EXTERNAL -H ldapi:/// << EOF
+                    ldapmodify -Y EXTERNAL -H ldapi:/// <<EOF
 dn: $versions_dn
 changetype: modify
 add: $ldap_version_attr
@@ -149,10 +190,18 @@ EOF
     fi
 }
 
-# Call the function to run ldiff files
-run_ldiff_files
+# Start the original entrypoint script /container/tool/run in the foreground
+/container/tool/run &
 
+
+
+echo "BCV INIT BEFORE WAIT"
+# Check if LDAP is ready before proceeding
+wait_for_ldap
+echo "BCV INIT BEFORE LDIFF"
+# Call the function to run ldiff files
+load_passwords
+run_ldiff_files
+echo "BCV INIT AFTER LDIFF"
 # Keep the container running
 tail -f /dev/null
-
-
