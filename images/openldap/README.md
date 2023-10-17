@@ -19,6 +19,11 @@ bcv-openldap:1.4.0-r1    // second release of tweaked osixia/openldap:1.4.0 imag
 bcv-openldap:1.4.7-r0    // first release of tweaked osixia/openldap:1.4.7 image
 ```
 
+## Versioning of LDAP schema
+
+This image has mechanism which automatically applies changescripts on startup. All applied versions are stored in LDAP inside ou=versions,$LDAP_BASE_DN as multivalued attribute appliedVersions. On startup, all ldif files inside dropin/changefiles are being checked against this applied versions database and are being executed in case the filename is not found amog the appliedVersions values.
+
+
 ## Building
 Simply cd to the directory which contains the Dockerfile and issue `docker build -t <image tag here> ./`.
 

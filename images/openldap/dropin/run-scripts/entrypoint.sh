@@ -190,10 +190,17 @@ EOF
     fi
 }
 
-# Start the original entrypoint script /container/tool/run in the foreground
+handle_signal() {
+    # Kill the /container/tool/run process
+    echo "Killing process $RUN_PID"
+    kill $RUN_PID
+    exit 0
+}
+
+trap 'handle_signal' SIGTERM SIGINT
+
 /container/tool/run &
-
-
+RUN_PID=$!
 
 echo "BCV INIT BEFORE WAIT"
 # Check if LDAP is ready before proceeding
