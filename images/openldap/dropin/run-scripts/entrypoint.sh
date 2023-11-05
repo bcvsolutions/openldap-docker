@@ -1,4 +1,19 @@
-#!/bin/sh
+#!/bin/bash
+
+handle_signal() {
+    # Kill the /container/tool/run process
+    echo "Killing process $RUN_PID"
+
+    kill $RUN_PID
+    wait $RUN_PID
+    exit 0
+}
+
+trap 'handle_signal' TERM INT
+
+/container/tool/run &
+RUN_PID=$!
+
 
 # Password to ldap users may be stored in files inside /container/environment/90-adminpw folder.
 # In that case we must fetch those and set corresponding env variables.
@@ -31,12 +46,11 @@ wait_for_ldap() {
     consecutive_threshold=5 # Adjust this threshold as needed
 
     while [ $retries -lt $max_retries ]; do
-        echo "BCV INIT search $retries"
         ldapsearch -x -LLL -b "" -s base "(objectClass=*)" 2>/dev/null
         if [ $? -eq 0 ]; then
             consecutive_success=$((consecutive_success + 1))
             if [ $consecutive_success -ge $consecutive_threshold ]; then
-                echo "BCV INIT LDAP server is ready."
+                echo "LDAP server is ready."
                 return 0
             fi
         else
@@ -47,7 +61,7 @@ wait_for_ldap() {
         sleep 2
     done
 
-    echo "BCV INIT LDAP server did not start within the specified time."
+    echo "LDAP server did not start within the specified time."
     exit 1
 }
 
@@ -57,7 +71,6 @@ check_versions_object() {
 
     ldapsearch -Y EXTERNAL -H ldapi:/// -LLL -b "$versions_dn" "(objectClass=*)" 2>/dev/null
     result=$?
-    echo "BCV INIT ldapsearch result for $versions_dn: $result"
 
     return $result
 }
@@ -67,35 +80,20 @@ check_and_create_versions_object() {
     versions_dn="$1"
 
     if ! check_versions_object "$versions_dn"; then
-        echo "BCV INIT Versions object $versions_dn does not exist. Creating it."
+        echo "Versions object $versions_dn does not exist. Creating it."
+        perform_operation "add" "/changefiles/version_storage.ldif"
         ldapadd -Y EXTERNAL -H ldapi:/// <<EOF
-dn: cn=iamVersionStorrage,cn=schema,cn=config
-objectClass: olcSchemaConfig
-cn: iamVersionStorrage
-olcAttributeTypes: {0}( 
-    1.3.6.1.4.1.33537.1.2.2.2 
-    NAME 'appliedVersions' 
-    EQUALITY caseIgnoreMatch 
-    DESC 'Stores all applied ldiff file names.' 
-    SYNTAX 1.3.6.1.4.1.1466.115.121.1.15)
-olcObjectClasses: {0}( 
-    1.3.6.1.4.1.33537.1.2.1.2 
-    NAME 'iamVersionStorrage' 
-    DESC 'IAM appliance-managed user account' 
-    SUP top 
-    AUXILIARY 
-    MAY ( appliedVersions ) 
-    X-ORIGIN 'Object class which IAM appliance uses to store applied ldiff names' )
-
-dn: $versions_dn
+        dn: $versions_dn
+changetype: add
 objectClass: top
 objectClass: iamVersionStorrage
 objectClass: organizationalUnit
+appliedVersions: version_storage.ldif
 EOF
     fi
 }
 
-# Function to determine the operation type based on ldiff contents
+# Function to determine the operation type based on ldif contents
 determine_operation_type() {
     file="$1"
 
@@ -140,75 +138,62 @@ perform_operation() {
     fi
 }
 
+updateAppliedVersions() {
+    versions_dn="$1"
+    ldap_version_attr="$2"
+    filename="$3"
+
+    ldapmodify -Y EXTERNAL -H ldapi:/// <<EOF
+dn: $versions_dn
+changetype: modify
+add: $ldap_version_attr
+$ldap_version_attr: $filename
+EOF
+}
 
 
-# Function to run all ldiff files in /bcv/changefiles/
+# Function to run all ldif files in /changefiles/
 run_ldiff_files() {
-    ldiff_dir="/bcv/changefiles/"
+    ldiff_dir="/changefiles"
     ldap_version_attr="appliedVersions"
     ldap_base_dn="$LDAP_BASE_DN"
-    versions_dn="ou=versions,$ldap_base_dn"
+    versions_dn="ou=versions,$LDAP_BASE_DN"
 
-    echo "BCV INIT Base DN: $ldap_base_dn"
-    echo "BCV INIT Versions DN: $versions_dn"
-
-    # Add the executed ldiff file to the versions object's versioning attribute
+    # Add the executed ldif file to the versions object's versioning attribute
     check_and_create_versions_object "$versions_dn"
-    # Get the list of already executed ldiff files from the LDAP object
+    # Get the list of already executed ldif files from the LDAP object
     executed_ldiff=$(ldapsearch -Y EXTERNAL -H ldapi:/// -LLL -b "$versions_dn" "$ldap_version_attr" | grep "$ldap_version_attr" | cut -d' ' -f2)
 
-    echo "BCV INIT historic versions: $executed_ldiff"
-
     if [ -d "$ldiff_dir" ]; then
-        for file in "$ldiff_dir"*.ldiff; do
+        for file in "$ldiff_dir"/*; do
             if [ -f "$file" ]; then
                 filename=$(basename "$file")
-
-                # Check if the ldiff file has not been executed before
+                # Check if the ldif file has not been executed before
                 if ! echo "$executed_ldiff" | grep -q "$filename"; then
-                    echo "BCV INIT Running ldiff file: $file"
+                    echo "Running ldif file: $file"
 
                     # Determine the operation type
                     operation=$(determine_operation_type "$file")
 
                     # Perform the appropriate ldap operation
                     perform_operation "$operation" "$file"
+                    updateAppliedVersions "$versions_dn" "$ldap_version_attr" "$filename"
 
-                    ldapmodify -Y EXTERNAL -H ldapi:/// <<EOF
-dn: $versions_dn
-changetype: modify
-add: $ldap_version_attr
-$ldap_version_attr: $filename
-EOF
                 else
-                    echo "BCV INIT Skipping already executed ldiff file: $file"
+                    echo "Skipping already executed ldif file: $file"
                 fi
             fi
         done
     else
-        echo "BCV INIT ldiff directory not found: $ldiff_dir"
+        echo "Ldif directory not found: $ldiff_dir"
     fi
 }
-
-handle_signal() {
-    # Kill the /container/tool/run process
-    echo "Killing process $RUN_PID"
-    kill $RUN_PID
-    exit 0
-}
-
-trap 'handle_signal' SIGTERM SIGINT
-
-/container/tool/run &
-RUN_PID=$!
 
 echo "BCV INIT BEFORE WAIT"
 # Check if LDAP is ready before proceeding
 wait_for_ldap
 echo "BCV INIT BEFORE LDIFF"
-# Call the function to run ldiff files
 load_passwords
 run_ldiff_files
-echo "BCV INIT AFTER LDIFF"
 # Keep the container running
-tail -f /dev/null
+wait $RUN_PID

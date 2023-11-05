@@ -27,4 +27,4 @@ RUN chmod -R 755 $RUNSCRIPTS_PATH
 
 # override entrypoint from https://github.com/osixia/docker-light-baseimage in order to
 # enable post-start script run
-ENTRYPOINT $RUNSCRIPTS_PATH/entrypoint.sh
+ENTRYPOINT ["/runscripts/entrypoint.sh"]

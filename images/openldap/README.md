@@ -21,8 +21,46 @@ bcv-openldap:1.4.7-r0    // first release of tweaked osixia/openldap:1.4.7 image
 
 ## Versioning of LDAP schema
 
-This image has mechanism which automatically applies changescripts on startup. All applied versions are stored in LDAP inside ou=versions,$LDAP_BASE_DN as multivalued attribute appliedVersions. On startup, all ldif files inside dropin/changefiles are being checked against this applied versions database and are being executed in case the filename is not found amog the appliedVersions values.
+This image has mechanism which automatically applies changescripts on startup. All applied versions are stor
+ed in LDAP inside ou=versions,$LDAP_BASE_DN as multivalued attribute appliedVersions. On startup, all ldif fi
+les inside dropin/changefiles are being checked against this applied versions database and are being executed
+in case the filename is not found amog the appliedVersions values.
 
+### **Main Execution Flow**:
+- Awaits LDAP server readiness.
+- Loads passwords.
+- Processes pending LDIF changes.
+- Suspends execution until `/container/tool/run` finishes.
+
+### **Signal Handling**:
+**Motivation**: Ensure a graceful shutdown of the container when it's interrupted or terminated.
+- Captures `TERM` and `INT` signals.
+- On signal reception, terminates the `/container/tool/run` process.
+
+### **Starting `/container/tool/run`**:
+**Motivation**: Initiate the main service/tool of the container in the background.
+- Runs `/container/tool/run` in the background.
+- Saves its process ID for graceful shutdown.
+
+### **LDAP Service Initialization**:
+**Motivation**: Ensure LDAP is fully operational before making modifications.
+- Probes the LDAP server using `ldapsearch`.
+- Waits for 5 consecutive successful probes before proceeding with applying versioning LDIF files.
+- If probing exceeds 30 attempts, the startup fails.
+
+### **Versioning Object in LDAP**:
+**Motivation**: Track schema and data changes applied to the LDAP to ensure each change is applied only once.
+
+#### **Checking and Creating Versioning Object**:
+- Uses `ldapsearch` to check if a versioning object, identified by `ou=versions,$LDAP_BASE_DN`, exists in LDAP.
+- If absent, creates this object which will store metadata about applied changes.
+
+#### **Versioning**:
+- Queries the LDAP object at `ou=versions,$LDAP_BASE_DN` to fetch a list of already executed LDIF files.
+- Iterates through LDIF files in `/changefiles`.
+  - For unexecuted files:
+    - Applies LDIF changes to LDAP.
+    - Updates the versioning object with the executed file's details, ensuring changes aren't redundantly applied in the future.
 
 ## Building
 Simply cd to the directory which contains the Dockerfile and issue `docker build -t <image tag here> ./`.
