@@ -28,19 +28,14 @@ in case the filename is not found amog the appliedVersions values.
 
 ### **Main Execution Flow**:
 - Awaits LDAP server readiness.
-- Loads passwords.
+- Loads passwords for script to authenticate with.
 - Processes pending LDIF changes.
-- Suspends execution until `/container/tool/run` finishes.
+- Waits until `/container/tool/run` finishes.
 
 ### **Signal Handling**:
 **Motivation**: Ensure a graceful shutdown of the container when it's interrupted or terminated.
 - Captures `TERM` and `INT` signals.
-- On signal reception, terminates the `/container/tool/run` process.
-
-### **Starting `/container/tool/run`**:
-**Motivation**: Initiate the main service/tool of the container in the background.
-- Runs `/container/tool/run` in the background.
-- Saves its process ID for graceful shutdown.
+- On signal reception, terminates the `/container/tool/run` process, which is responsible for stopping the LDAP itself.
 
 ### **LDAP Service Initialization**:
 **Motivation**: Ensure LDAP is fully operational before making modifications.
