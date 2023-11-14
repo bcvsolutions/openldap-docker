@@ -10,9 +10,6 @@ handle_signal() {
 
 trap 'handle_signal' SIGTERM
 
-/container/tool/run &
-RUN_PID=$!
-
 # Wait for the OpenLDAP service to start
 # Underlying LDAP server starts and shuts down multiple times during container
 # startup. We need to wait for it to start in order to be able to modify its
@@ -140,11 +137,29 @@ run_ldif_files() {
     fi
 }
 
+/container/tool/run &
+RUN_PID=$!
+
 echo "[$0] BCV INIT BEFORE WAIT"
 # Check if LDAP is ready before proceeding
 wait_for_ldap
 echo "[$0] BCV INIT BEFORE LDIF"
 run_ldif_files
 echo "[$0] BCV INIT AFTER LDIF"
-# Keep the container running
+
+# Wait here until the runc stops running
 wait $RUN_PID
+
+echo "[$0] Starting to wait (in a loop) for runc to terminate.";
+# when exiting, wait at most 30 seconds
+for i in {1..30}; do
+  procs=$(ps -ef | grep -Ec "/[c]ontainer/tool/run");
+  if [ "$procs" -eq 0 ]; then
+    break;
+  fi
+  sleep 1;
+  echo "[$0] Loop waited.";
+done
+# safety to get other processes in proctree chance to terminate
+echo "[$0] Safety sleep 1 second before terminating the container.";
+sleep 1
