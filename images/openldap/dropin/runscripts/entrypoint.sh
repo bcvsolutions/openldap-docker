@@ -24,7 +24,7 @@ LDAP_VERSION_ATTR="appliedVersion"
 # and measuring consecutive successful searches. If it detects 5 consecutive successful
 #searches, then LDAP is considered to be started.
 wait_for_ldap() {
-    max_retries=30 # Adjust the number of retries as needed
+    max_retries=180 # Setting quite a high number due to possible DH-param generation in new deployments
     consecutive_threshold=5 # Adjust this threshold as needed
 
     retries=0
@@ -60,7 +60,16 @@ $LDAP_VERSION_ATTR: $filename
 EOF
 }
 
-# TODO: docs
+# This function processes an LDIF file that is being applied.
+# It reads the file header and sets internal handling accordingly. For full explanation of params see changefiles/TEMPLATE.ldif.tpl .
+# It also processes the LDIF file and replaces possible templating marks:
+#   __LDAP_DOMAIN__ -> with value of $LDAP_DOMAIN
+#   __LDAP_BASE_DN__ -> with value of $LDAP_BASE_DN
+#   __LDAP_READONLY_USER_USERNAME__ -> with value of $LDAP_READONLY_USER_USERNAME
+#   __RESOLVED_ENTRY_DN__ -> with value of $RESOLVED_ENTRY_DN (this variable is looked-up at runtime with the dn-lookup directive)
+# Once the LDIF is finalized, it is run against the LDAP server. If successful, the file name is versioned in a special object inside
+# LDAP database. This prevents files to be applied more than once.
+# This function does proper return codes (0 means OK, >0 means error).
 perform_operation() {
   file="$1"
   filename=$(basename "$file")
@@ -161,7 +170,7 @@ perform_operation() {
   return 3
 }
 
-# Function to run all ldif files in /changefiles/
+# Function to run all ldif files in /changefiles/*.ldif
 run_ldif_files() {
   # Get the list of already executed ldif files from the LDAP object.
   # If the version object does not exist, this search returns empty list
@@ -190,15 +199,16 @@ run_ldif_files() {
   done
 }
 
+# Start the runc which starts the OpenLDAP.
 /container/tool/run &
 RUN_PID=$!
 
-echo "[$0] BCV INIT BEFORE WAIT"
+echo "[$0] INIT BEFORE WAIT"
 # Check if LDAP is ready before proceeding
 wait_for_ldap
-echo "[$0] BCV INIT BEFORE LDIF"
+echo "[$0] INIT BEFORE LDIF"
 run_ldif_files
-echo "[$0] BCV INIT AFTER LDIF"
+echo "[$0] INIT AFTER LDIF"
 
 # Wait here until the runc stops running
 wait $RUN_PID
@@ -213,6 +223,6 @@ for i in {1..30}; do
   sleep 1;
   echo "[$0] Loop waited.";
 done
-# safety to get other processes in proctree chance to terminate
+# safety to give other processes in proctree chance to terminate
 echo "[$0] Safety sleep 1 second before terminating the container.";
 sleep 1
