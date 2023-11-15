@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -x
+# set -x
 
 handle_signal() {
     # Kill the /container/tool/run process
@@ -68,7 +68,7 @@ perform_operation() {
   file_header=$(cat "$file" | sed -n '/----- LDIF HEADER BEGIN -----/,/----- LDIF HEADER END -----/p')
   # those are mandatory
   header_version=$(echo "$file_header" | grep -oE 'header-version: [0-9]+' | sed -e 's/header-version: //')
-  if [ "x$header_version" != "1" ]; then
+  if [ "$header_version" != "1" ]; then
     echo "[$0] Invalid LDIF changefile $file. Bad 'header-version' parameter in the header."
     return 1
   fi
@@ -80,9 +80,9 @@ perform_operation() {
   fi
   # those can be empty; also do the template substitution
   dn_lookup=$(echo "$file_header" | grep -oE 'dn-lookup: .*$' | sed -e 's/dn-lookup: //')
-  dn_lookup=$(echo "$dn_lookup" | sed -e "s/__LDAP_DOMAIN__/$LDAP_DOMAIN/" -e "s/__LDAP_BASE_DN__/$LDAP_BASE_DN/" -e "s/__LDAP_READONLY_USERNAME__/$LDAP_READONLY_USERNAME/")
+  dn_lookup=$(echo "$dn_lookup" | sed -e "s/__LDAP_DOMAIN__/$LDAP_DOMAIN/" -e "s/__LDAP_BASE_DN__/$LDAP_BASE_DN/" -e "s/__LDAP_READONLY_USER_USERNAME__/$LDAP_READONLY_USER_USERNAME/")
   presence_check=$(echo "$file_header" | grep -oE 'presence-check: .*$' | sed -e 's/presence-check: //')
-  presence_check=$(echo "$presence_check" | sed -e "s/__LDAP_DOMAIN__/$LDAP_DOMAIN/" -e "s/__LDAP_BASE_DN__/$LDAP_BASE_DN/" -e "s/__LDAP_READONLY_USERNAME__/$LDAP_READONLY_USERNAME/")
+  presence_check=$(echo "$presence_check" | sed -e "s/__LDAP_DOMAIN__/$LDAP_DOMAIN/" -e "s/__LDAP_BASE_DN__/$LDAP_BASE_DN/" -e "s/__LDAP_READONLY_USER_USERNAME__/$LDAP_READONLY_USER_USERNAME/")
   # those have some defaults if empty
   on_present=$(echo "$file_header" | grep -oE 'on-present: (skip|execute|persist-versioning)' | sed -e 's/on-present: //')
   if [ "x$on_present" = "x" ]; then
@@ -135,8 +135,8 @@ perform_operation() {
     echo "[$0] Dn-lookup: Resolved entryDN is $RESOLVED_ENTRY_DN ."
   fi
   # load the actual LDIF body into variable
-  # do the templating on the LDIF body with LDAP_DOMAIN, LDAP_BASE_DN, LDAP_READONLY_USERNAME, RESOLVED_ENTRY_DN
-  ldif_final=$(cat "$file" | sed -e "s/__LDAP_DOMAIN__/$LDAP_DOMAIN/" -e "s/__LDAP_BASE_DN__/$LDAP_BASE_DN/" -e "s/__LDAP_READONLY_USERNAME__/$LDAP_READONLY_USERNAME/" -e "s/__RESOLVED_ENTRY_DN__/$RESOLVED_ENTRY_DN/")
+  # do the templating on the LDIF body with LDAP_DOMAIN, LDAP_BASE_DN, LDAP_READONLY_USER_USERNAME, RESOLVED_ENTRY_DN
+  ldif_final=$(cat "$file" | sed -e "s/__LDAP_DOMAIN__/$LDAP_DOMAIN/" -e "s/__LDAP_BASE_DN__/$LDAP_BASE_DN/" -e "s/__LDAP_READONLY_USER_USERNAME__/$LDAP_READONLY_USER_USERNAME/" -e "s/__RESOLVED_ENTRY_DN__/$RESOLVED_ENTRY_DN/")
 
   # execute the LDIF body
   # grad the return code and branch accordingly

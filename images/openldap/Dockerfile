@@ -14,9 +14,6 @@ RUN chmod 755 /container/service/slapd-backup/assets/tool/slapd-backup
 COPY ./dropin/slapd-restore /container/service/slapd-backup/assets/tool/slapd-restore
 RUN chmod 755 /container/service/slapd-backup/assets/tool/slapd-restore
 
-RUN mkdir -pv /container/service/slapd/assets/config/bootstrap/ldif/custom/
-COPY ./dropin/initial-data/* /container/service/slapd/assets/config/bootstrap/ldif/custom/
-
 RUN mkdir -pv $CHANGEFILES_PATH
 COPY ./dropin/changefiles/* $CHANGEFILES_PATH
 

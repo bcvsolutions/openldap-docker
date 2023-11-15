@@ -22,7 +22,7 @@ olcObjectClasses: {0}(
   DESC 'IAM appliance-managed user account'
   SUP top
   AUXILIARY
-  MAY ( appliedVersions )
+  MAY ( appliedVersion )
   X-ORIGIN 'Object class which IAM appliance uses to store applied ldif names.'
   )
 
@@ -31,4 +31,3 @@ changetype: add
 objectClass: top
 objectClass: iamVersionStorage
 objectClass: organizationalUnit
-appliedVersions: 000000-version-storage.ldif
