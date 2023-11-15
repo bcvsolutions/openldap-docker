@@ -19,7 +19,7 @@ olcAttributeTypes: {0}(
 olcObjectClasses: {0}(
   1.3.6.1.4.1.33537.1.2.1.2
   NAME 'iamVersionStorage'
-  DESC 'IAM appliance-managed user account'
+  DESC 'IAM appliance ldap schema versioning object'
   SUP top
   AUXILIARY
   MAY ( appliedVersion )
