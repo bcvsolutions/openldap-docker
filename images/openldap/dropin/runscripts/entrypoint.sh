@@ -24,8 +24,8 @@ LDAP_VERSION_ATTR="appliedVersion"
 # and measuring consecutive successful searches. If it detects 5 consecutive successful
 #searches, then LDAP is considered to be started.
 wait_for_ldap() {
-    max_retries=180 # Setting quite a high number due to possible DH-param generation in new deployments
-    consecutive_threshold=5 # Adjust this threshold as needed
+    max_retries=30 # Tunable parameter
+    consecutive_threshold=5 # Tunable parameter
 
     retries=0
     consecutive_success=0
@@ -198,6 +198,14 @@ run_ldif_files() {
     fi
   done
 }
+
+slapd_dhparam_file="/container/service/slapd/assets/certs/dhparam.pem"
+if [ ! -f "$slapd_dhparam_file" ]; then
+  echo "[$0] SLAPD dhparam file not found. Generating it now to prevent 1st slapd start to wait for it. This will take some time..."
+  openssl dhparam -out "$slapd_dhparam_file" 2048 && \
+    chown openldap:openldap "$slapd_dhparam_file" && \
+    chmod 600 "$slapd_dhparam_file"
+fi
 
 # Start the runc which starts the OpenLDAP.
 /container/tool/run &
