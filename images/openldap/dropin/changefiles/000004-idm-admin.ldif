@@ -1,5 +1,13 @@
+# ----- LDIF HEADER BEGIN -----
+# header-version: 1
+# lookup-context: data
+# presence-check: (entryDN=uid=admin,ou=users,__LDAP_BASE_DN__)
+# on-present: persist-versioning
+# ----- LDIF HEADER END -----
+
 #Contains default password 'admin'
-dn: uid=admin,ou=users,{{ LDAP_BASE_DN }}
+dn: uid=admin,ou=users,__LDAP_BASE_DN__
+changetype: add
 objectClass: top
 objectClass: person
 objectClass: organizationalPerson

@@ -3,12 +3,10 @@
 #     // This is for future needs. So far, only version 1 exists.
 #     // This attribute is mandatory!
 #
-# apply-context: data | config
-#     // Specifies on which LDAP database to perform the operation. Also has effect on dn-lookup and presence-check.
-#     // This attribute is mandatory!
-#     //
-#     // data: perform this operation on user datastore
-#     // config: perform this operation on OLC (cn=config subtree)
+# lookup-context: data | config
+#     // Specifies on which LDAP database to perform dn-lookup and presence-check operations.
+#     // data: perform lookups on user datastore
+#     // config (default): perform lookups on OLC (cn=config subtree)
 #
 # dn-lookup: (&(objectClass=olcSchemaConfig)(cn={*}iamManagedUser))
 #     // Contains LDAP filter used to look up actual entry DN. This will work globally but is really intended only for

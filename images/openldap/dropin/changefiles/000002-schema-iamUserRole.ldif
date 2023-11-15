@@ -1,15 +1,15 @@
 # ----- LDIF HEADER BEGIN -----
 # header-version: 1
-# apply-context: config
+# lookup-context: config
 # dn-lookup: (&(objectClass=olcSchemaConfig)(cn={*}iamManagedUser))
 # ----- LDIF HEADER END -----
 
-dn: cn={14}iamManagedUser,cn=schema,cn=config
+dn: __RESOLVED_ENTRY_DN__
 changetype: modify
 add: olcAttributeTypes
-olcAttributeTypes: {0}(
+olcAttributeTypes: {1}(
   1.3.6.1.4.1.33537.1.2.2.3
-  NAME 'iamPermissions'
+  NAME 'iamUserRole'
   EQUALITY caseIgnoreMatch
   DESC 'Multivalued list of users roles'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
@@ -22,5 +22,6 @@ olcObjectClasses: {0}(
   DESC 'IAM appliance-managed user account'
   SUP top
   AUXILIARY
-  MAY ( iamUserStatus $ iamPermissions )
-  X-ORIGIN 'IAM appliance analogy of inetUser' )
+  MAY ( iamUserStatus $ iamUserRole )
+  X-ORIGIN 'IAM appliance analogy of inetUser'
+  )

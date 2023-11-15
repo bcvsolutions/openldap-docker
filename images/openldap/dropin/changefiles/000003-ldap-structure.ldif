@@ -1,0 +1,18 @@
+# ----- LDIF HEADER BEGIN -----
+# header-version: 1
+# lookup-context: data
+# presence-check: (entryDN=ou=users,__LDAP_BASE_DN__)
+# on-present: persist-versioning
+# ----- LDIF HEADER END -----
+
+dn: ou=users,__LDAP_BASE_DN__
+changetype: add
+objectClass: top
+objectClass: organizationalUnit
+ou: users
+
+dn: ou=groups,__LDAP_BASE_DN__
+changetype: add
+objectClass: top
+objectClass: organizationalUnit
+ou: groups
