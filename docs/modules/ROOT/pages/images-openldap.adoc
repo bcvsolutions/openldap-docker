@@ -3,9 +3,9 @@
 Image built atop https://hub.docker.com/r/osixia/openldap-backup/[osixia/openldap-backup] image.
 Original image contains cron scheduler for backup operations. We did not want the container to manage them, so we forked the image and disabled those features.
 
-We also added some basic internal structure to the LDAP when being initialized for the first time.
+We also added LDAP schema and contents versioning mechanism similar to https://flywaydb.org/[Flyway versioning for SQL databases].
 
-WARNING: There is an user `uid=admin,ou=users,{{ LDAP_BASE_DN }}` who has his password set to `admin`. Change his password or delete the user after container is initialized.
+WARNING: There is an user `uid=admin,ou=users,$LDAP_BASE_DN` who has his password set to `admin`. Change his password or delete the user after container is initialized.
 
 == Image versioning
 Naming scheme is pretty simple: **bcv-openldap:OSIXIA_BASEIMAGE_VERSION-rIMAGE_VERSION**.
@@ -20,41 +20,6 @@ bcv-openldap:1.4.0-r0     // first release of tweaked osixia/openldap:1.4.0 imag
 bcv-openldap:1.4.0-r1    // second release of tweaked osixia/openldap:1.4.0 image (we made some other changes)
 bcv-openldap:1.4.7-r0    // first release of tweaked osixia/openldap:1.4.7 image
 ----
-
-== Versioning of LDAP schema
-
-This image has mechanism which automatically applies changescripts on startup. All applied versions are stored in LDAP inside `ou=versions,$LDAP_BASE_DN` as multivalued attribute `appliedVersions`. On startup, all ldif files inside dropin/changefiles are being checked against this applied versions database and are being executed in case the filename is not found among the `appliedVersions` values.
-
-=== Main Execution Flow
-. Awaits LDAP server readiness.
-. Loads passwords for script to authenticate with.
-. Processes pending LDIF changes.
-. Waits until `/container/tool/run` finishes.
-
-=== Signal Handling
-**Motivation**: Ensure a graceful shutdown of the container when it's interrupted or terminated.
-. Captures `TERM` and `INT` signals.
-. On signal reception, terminates the `/container/tool/run` process, which is responsible for stopping the LDAP itself.
-
-=== LDAP Service Initialization
-**Motivation**: Ensure LDAP is fully operational before making modifications.
-. Probes the LDAP server using `ldapsearch`.
-. Waits for 5 consecutive successful probes before proceeding with applying versioning LDIF files.
-. If probing exceeds 30 attempts, the startup fails.
-
-=== Versioning Object in LDAP
-**Motivation**: Track schema and data changes applied to the LDAP to ensure each change is applied only once.
-
-==== Checking and Creating Versioning Object
-* Uses `ldapsearch` to check if a versioning object, identified by `ou=versions,$LDAP_BASE_DN`, exists in LDAP.
-* If absent, creates this object which will store metadata about applied changes.
-
-==== Versioning
-* Queries the LDAP object at `ou=versions,$LDAP_BASE_DN` to fetch a list of already executed LDIF files.
-* Iterates through LDIF files in `/changefiles`.
-** For unexecuted files:
-*** Applies LDIF changes to LDAP.
-*** Updates the versioning object with the executed file's details, ensuring changes aren't redundantly applied in the future.
 
 == Building
 Simply `cd` to the directory which contains the Dockerfile and issue `docker build -t <image tag here> ./`.
@@ -82,6 +47,31 @@ Extra variables added in this image are:
 
 * `LDAP_ENCRYPT_SYMKEY_FILE` - Location of symmetric key for backup encryption.
 * `LDAP_ENCRYPT_BACKUP` - Flag that turns on/off the backup encryption. Format true/false.
+
+== Versioning of LDAP schema
+
+This image has mechanism which automatically applies _changescripts_ on startup. All applied versions are stored inside the LDAP databse in the `ou=versions,$LDAP_BASE_DN` entry. Each applied version has its own value in a multivalued attribute `appliedVersion`.
+
+On startup, all LDIF files inside `/changefiles/` directory are checked against the list of already applied versions. If they were not already applied, the startup routine applies them and marks them into the `appliedVersion` attribute.
+
+Our LDIF files have special header that allows you to customize their behavior a bit or steer the execution flow. This feature is intended mainly for dealing with upgrade process on deployments - where there can be objects added by hand, custom schema changes, etc. Those directives also offer some basic ability to template changefiles, which allows you to deal with natural numbering (`{0}`,`{1}`,`{2}`, ...) used by slapd on some of its entries.
+
+For more details on those directives, see `TEMPLATE.ldif.tpl` in the changefiles directory in this repo.
+
+=== Container lifecycle
+* Startup
+.. `entrypoint.sh` creates DHparam file for the `slapd` daemon.
+.. `entrypoint.sh` starts `runc` daemon from the original Osixia image and enters the readiness-check loop.
+*** This is implemented as probing `slapd` with `ldapsearch` periodically. After 5 consecutive successes, the `slapd` is considered started. If more than 30 attempts fail, container startup fails.
+.. Once the `slapd` is up and running, the `entrypoint.sh` processes LDIF changes.
+.. The `entrypoint.sh` script waits until `/container/tool/run` finishes.
+* Shutdown
+.. Running container receives `SIGTERM` from the Docker daemon.
+.. `entrypoint.sh` script forwards it to the `runc` and enters the wait-loop.
+*** If waiting more than 30 seconds, the `entrypoint.sh` terminates.
+.. `runc` takes care of all services it has running as its children processes.
+.. `runc` exits.
+.. `entrypoint.sh` exits, terminating the container.
 
 == Backups
 Container can make a persistent backup of the database, using `slapcat`, producing gzipped LDIF. If encryption is set then gzipped LDIF will be encrypted.
