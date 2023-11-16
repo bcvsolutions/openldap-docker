@@ -54,7 +54,7 @@ This image has mechanism which automatically applies _changescripts_ on startup.
 
 On startup, all LDIF files inside `/changefiles/` directory are checked against the list of already applied versions. If they were not already applied, the startup routine applies them and marks them into the `appliedVersion` attribute.
 
-Our LDIF files have special header that allows you to customize their behavior a bit or steer the execution flow. This feature is intended mainly for dealing with upgrade process on deployments - where there can be objects added by hand, custom schema changes, etc. Those directives also offer some basic ability to template changefiles, which allows you to deal with natural numbering (`{0}`,`{1}`,`{2}`, ...) used by slapd on some of its entries.
+Our LDIF files have special header that allows you to customize their behavior a bit or steer the execution flow. This feature is intended mainly for dealing with upgrade process on deployments - where there can be objects added by hand, custom schema changes, etc. Those directives also offer some basic ability to template changefiles, which allows you to deal with natural numbering (`\{0\}`,`\{1\}`,`\{2\}`, ...) used by slapd on some of its entries.
 
 For more details on those directives, see `TEMPLATE.ldif.tpl` in the changefiles directory in this repo.
 
