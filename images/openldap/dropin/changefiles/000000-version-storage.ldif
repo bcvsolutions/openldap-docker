@@ -1,0 +1,33 @@
+# ----- LDIF HEADER BEGIN -----
+# header-version: 1
+# lookup-context: data
+# presence-check: (entryDN=ou=versions,__LDAP_BASE_DN__)
+# on-present: skip
+# ----- LDIF HEADER END -----
+
+dn: cn=iamVersionStorage,cn=schema,cn=config
+changetype: add
+objectClass: olcSchemaConfig
+cn: iamVersionStorage
+olcAttributeTypes: {0}(
+  1.3.6.1.4.1.33537.1.2.2.2
+  NAME 'appliedVersion'
+  EQUALITY caseIgnoreMatch
+  DESC 'Stores applied ldif file name.'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
+  )
+olcObjectClasses: {0}(
+  1.3.6.1.4.1.33537.1.2.1.2
+  NAME 'iamVersionStorage'
+  DESC 'IAM appliance ldap schema versioning object'
+  SUP top
+  AUXILIARY
+  MAY ( appliedVersion )
+  X-ORIGIN 'Object class which IAM appliance uses to store applied ldif names.'
+  )
+
+dn: ou=versions,__LDAP_BASE_DN__
+changetype: add
+objectClass: top
+objectClass: iamVersionStorage
+objectClass: organizationalUnit
