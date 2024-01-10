@@ -1,0 +1,7 @@
+= OpenLDAP compose files
+
+WARNING: RSA key and certificate in this repo are for TESTING ONLY!
+
+You can PoC the container image right inside the `compose/` directory. Simply build the image located in `images/openldap/` and then fire it up with `cd compose/ && docker compose -f docker-compose-openldap.yml up`.
+
+For many more settings, consult baseimages https://hub.docker.com/r/osixia/openldap/[osixia/openldap] and https://hub.docker.com/r/osixia/openldap-backup/[osixia/openldap-backup].

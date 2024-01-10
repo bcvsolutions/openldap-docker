@@ -1,0 +1,27 @@
+# ----- LDIF HEADER BEGIN -----
+# header-version: 1
+# lookup-context: config
+# dn-lookup: (&(objectClass=olcSchemaConfig)(cn={*}iamManagedUser))
+# ----- LDIF HEADER END -----
+
+dn: __RESOLVED_ENTRY_DN__
+changetype: modify
+add: olcAttributeTypes
+olcAttributeTypes: {3}(
+  1.3.6.1.4.1.33537.1.2.2.4
+  NAME 'iamUserMfaGauthDevice'
+  EQUALITY caseIgnoreMatch
+  DESC 'CAS GAuth registered device'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
+  )
+-
+replace: olcObjectClasses
+olcObjectClasses: {0}(
+  1.3.6.1.4.1.33537.1.2.1.1
+  NAME 'iamManagedUser'
+  DESC 'IAM appliance-managed user account'
+  SUP top
+  AUXILIARY
+  MAY ( iamUserStatus $ iamUserRole $ iamUserMfaGauthDevice )
+  X-ORIGIN 'IAM appliance analogy of inetUser'
+  )

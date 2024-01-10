@@ -1,0 +1,29 @@
+# ----- LDIF HEADER BEGIN -----
+# header-version: 1
+# lookup-context: config
+# presence-check: (&(objectClass=olcSchemaConfig)(cn={*}iamManagedUser))
+# on-present: persist-versioning
+# ----- LDIF HEADER END -----
+
+dn: cn=iamManagedUser,cn=schema,cn=config
+changetype: add
+objectClass: olcSchemaConfig
+cn: iamManagedUser
+olcAttributeTypes: {0}(
+  1.3.6.1.4.1.33537.1.2.2.1
+  NAME 'iamUserStatus'
+  EQUALITY caseIgnoreMatch
+  DESC '"active", "inactive", or "deleted" status of a user'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
+  SINGLE-VALUE
+  X-ORIGIN 'IAM appliance equivalent of inetUserStatus'
+  )
+olcObjectClasses: {0}(
+  1.3.6.1.4.1.33537.1.2.1.1
+  NAME 'iamManagedUser'
+  DESC 'IAM appliance-managed user account'
+  SUP top
+  AUXILIARY
+  MAY ( iamUserStatus )
+  X-ORIGIN 'IAM appliance analogy of inetUser'
+  )

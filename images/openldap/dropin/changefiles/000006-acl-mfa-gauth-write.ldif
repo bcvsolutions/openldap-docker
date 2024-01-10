@@ -1,0 +1,10 @@
+# ----- LDIF HEADER BEGIN -----
+# header-version: 1
+# lookup-context: config
+# dn-lookup: (&(objectClass=olcDatabaseConfig)(olcSuffix=__LDAP_BASE_DN__))
+# ----- LDIF HEADER END -----
+
+dn: __RESOLVED_ENTRY_DN__
+changetype: modify
+add: olcAccess
+olcAccess: {2} to attrs=iamUserMfaGauthDevice by dn="cn=__LDAP_READONLY_USER_USERNAME__,__LDAP_BASE_DN__" write

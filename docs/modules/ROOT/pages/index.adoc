@@ -1,0 +1,16 @@
+= IAM appliance - openldap-docker
+:description: OpenLDAP docker container for IAM appliance
+:sectanchors:
+:idprefix:
+:idseparator: -
+:example-caption!:
+:url-repo: https://github.com/bcvsolutions/openldap-docker.git
+
+This is a OpenLDAP container originally cloned from Osixia enhanced with:
+
+* Optional backup encryption.
+* Disabled scheduled backups.
+* Removed AWS S3 bucket upload mechanism.
+* Added LDAP schema versioning.
+
+This container is further incorporated into `iam-app-directory-server` RPM package for the IAM appliance.
