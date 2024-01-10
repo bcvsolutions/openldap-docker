@@ -1,6 +1,6 @@
 name: openldap-docker
 title: IAM appliance - openldap-docker
-version: 1.4.0-r3
+version: 1.4.0-r4
 display_version: "develop"
 start_page: ROOT:index.adoc
 nav:
