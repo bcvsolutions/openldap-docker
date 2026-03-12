@@ -1,3 +1,5 @@
+# Moved to gitlab repo: https://git.bcvsolutions.eu/czechidm/iam/openldap-docker
+
 # openldap-docker
 Fork of [osixia/openldap-backup](https://hub.docker.com/r/osixia/openldap-backup/) image for use by BCV.
 
